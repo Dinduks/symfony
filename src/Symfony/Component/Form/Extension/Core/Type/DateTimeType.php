@@ -16,7 +16,6 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormBuilder;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\Form\ReversedTransformer;
-use Symfony\Component\Form\Exception\FormException;
 use Symfony\Component\Form\Extension\Core\DataTransformer\DataTransformerChain;
 use Symfony\Component\Form\Extension\Core\DataTransformer\DateTimeToArrayTransformer;
 use Symfony\Component\Form\Extension\Core\DataTransformer\DateTimeToStringTransformer;
@@ -33,16 +32,12 @@ class DateTimeType extends AbstractType
         $parts = array('year', 'month', 'day', 'hour', 'minute');
         $timeParts = array('hour', 'minute');
 
-        $format = 'Y-m-d H:i:00';
+        $format = 'Y-m-d H:i';
         if ($options['with_seconds']) {
             $format = 'Y-m-d H:i:s';
 
             $parts[] = 'second';
             $timeParts[] = 'second';
-        }
-
-        if ($options['date_widget'] !== $options['time_widget']) {
-            throw new FormException(sprintf('Options "date_widget" and "time_widget" need to be identical. Used: "date_widget" = "%s" and "time_widget" = "%s".', $options['date_widget'] ?: 'choice', $options['time_widget'] ?: 'choice'));
         }
 
         if ('single_text' === $options['widget']) {
@@ -107,7 +102,7 @@ class DateTimeType extends AbstractType
 
         if ('string' === $options['input']) {
             $builder->appendNormTransformer(new ReversedTransformer(
-                new DateTimeToStringTransformer($options['data_timezone'], $options['data_timezone'], $format)
+                new DateTimeToStringTransformer($options['data_timezone'], $options['data_timezone'])
             ));
         } elseif ('timestamp' === $options['input']) {
             $builder->appendNormTransformer(new ReversedTransformer(
@@ -133,7 +128,7 @@ class DateTimeType extends AbstractType
     /**
      * {@inheritdoc}
      */
-    public function getDefaultOptions(array $options)
+    public function getDefaultOptions()
     {
         return array(
             'input'         => 'datetime',
@@ -158,13 +153,18 @@ class DateTimeType extends AbstractType
             'widget'        => null,
             // This will overwrite "empty_value" child options
             'empty_value'   => null,
+            // If initialized with a \DateTime object, FormType initializes
+            // this option to "\DateTime". Since the internal, normalized
+            // representation is not \DateTime, but an array, we need to unset
+            // this option.
+            'data_class'    => null,
         );
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getAllowedOptionValues(array $options)
+    public function getAllowedOptionValues()
     {
         return array(
             'input'       => array(
@@ -200,7 +200,7 @@ class DateTimeType extends AbstractType
      */
     public function getParent(array $options)
     {
-        return 'single_text' === $options['widget'] ? 'field' : 'form';
+        return 'field';
     }
 
     /**

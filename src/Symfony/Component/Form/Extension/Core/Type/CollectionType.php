@@ -16,6 +16,7 @@ use Symfony\Component\Form\FormBuilder;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\Extension\Core\EventListener\ResizeFormListener;
+use Symfony\Component\Form\Extension\Core\EventListener\MergeCollectionListener;
 
 class CollectionType extends AbstractType
 {
@@ -25,11 +26,13 @@ class CollectionType extends AbstractType
     public function buildForm(FormBuilder $builder, array $options)
     {
         if ($options['allow_add'] && $options['prototype']) {
-            $prototype = $builder->create($options['prototype_name'], $options['type'], $options['options']);
+            $prototype = $builder->create($options['prototype_name'], $options['type'], array_replace(array(
+                'label' => $options['prototype_name'] . 'label__',
+            ), $options['options']));
             $builder->setAttribute('prototype', $prototype->getForm());
         }
 
-        $listener = new ResizeFormListener(
+        $resizeListener = new ResizeFormListener(
             $builder->getFormFactory(),
             $options['type'],
             $options['options'],
@@ -38,7 +41,7 @@ class CollectionType extends AbstractType
         );
 
         $builder
-            ->addEventSubscriber($listener)
+            ->addEventSubscriber($resizeListener)
             ->setAttribute('allow_add', $options['allow_add'])
             ->setAttribute('allow_delete', $options['allow_delete'])
         ;
@@ -72,7 +75,7 @@ class CollectionType extends AbstractType
     /**
      * {@inheritdoc}
      */
-    public function getDefaultOptions(array $options)
+    public function getDefaultOptions()
     {
         return array(
             'allow_add'      => false,

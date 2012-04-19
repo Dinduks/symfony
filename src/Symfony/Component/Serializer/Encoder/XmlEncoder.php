@@ -1,17 +1,17 @@
 <?php
 
-namespace Symfony\Component\Serializer\Encoder;
-
-use Symfony\Component\Serializer\Exception\UnexpectedValueException;
-
 /*
- * This file is part of the Symfony framework.
+ * This file is part of the Symfony package.
  *
  * (c) Fabien Potencier <fabien@symfony.com>
  *
- * This source file is subject to the MIT license that is bundled
- * with this source code in the file LICENSE.
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
+
+namespace Symfony\Component\Serializer\Encoder;
+
+use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 
 /**
  * Encodes XML data
@@ -54,7 +54,18 @@ class XmlEncoder extends SerializerAwareEncoder implements EncoderInterface, Dec
      */
     public function decode($data, $format)
     {
+        $internalErrors = libxml_use_internal_errors(true);
+        $disableEntities = libxml_disable_entity_loader(true);
+        libxml_clear_errors();
+
         $xml = simplexml_load_string($data);
+        libxml_use_internal_errors($internalErrors);
+        libxml_disable_entity_loader($disableEntities);
+
+        if ($error = libxml_get_last_error()) {
+            throw new UnexpectedValueException($error->message);
+        }
+
         if (!$xml->count()) {
             if (!$xml->attributes()) {
                 return (string) $xml;

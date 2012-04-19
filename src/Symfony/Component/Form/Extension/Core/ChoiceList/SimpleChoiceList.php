@@ -15,10 +15,18 @@ namespace Symfony\Component\Form\Extension\Core\ChoiceList;
 use Symfony\Component\Form\Exception\UnexpectedTypeException;
 
 /**
- * A choice list that can store any choices that are allowed as PHP array keys.
+ * A choice list for choices of type string or integer.
  *
- * The value strategy of simple choice lists is fixed to ChoiceList::COPY_CHOICE,
- * since array keys are always valid choice values.
+ * Choices and their associated labels can be passed in a single array. Since
+ * choices are passed as array keys, only strings or integer choices are
+ * allowed.
+ *
+ * <code>
+ * $choiceList = new SimpleChoiceList(array(
+ *     'creditcard' => 'Credit card payment',
+ *     'cash' => 'Cash payment',
+ * ));
+ * </code>
  *
  * @author Bernhard Schussek <bschussek@gmail.com>
  */
@@ -35,15 +43,35 @@ class SimpleChoiceList extends ChoiceList
      *                                  key pointing to the nested array.
      * @param array   $preferredChoices A flat array of choices that should be
      *                                  presented to the user with priority.
-     * @param integer $valueStrategy    The strategy used to create choice values.
-     *                                  One of COPY_CHOICE and GENERATE.
-     * @param integer $indexStrategy    The strategy used to create choice indices.
-     *                                  One of COPY_CHOICE and GENERATE.
      */
-    public function __construct(array $choices, array $preferredChoices = array(), $valueStrategy = self::COPY_CHOICE, $indexStrategy = self::GENERATE)
+    public function __construct(array $choices, array $preferredChoices = array())
     {
         // Flip preferred choices to speed up lookup
-        parent::__construct($choices, $choices, array_flip($preferredChoices), $valueStrategy, $indexStrategy);
+        parent::__construct($choices, $choices, array_flip($preferredChoices));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getChoicesForValues(array $values)
+    {
+        $values = $this->fixValues($values);
+
+        // The values are identical to the choices, so we can just return them
+        // to improve performance a little bit
+        return $this->fixChoices(array_intersect($values, $this->getValues()));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getValuesForChoices(array $choices)
+    {
+        $choices = $this->fixChoices($choices);
+
+        // The choices are identical to the values, so we can just return them
+        // to improve performance a little bit
+        return $this->fixValues(array_intersect($choices, $this->getValues()));
     }
 
     /**
@@ -118,16 +146,21 @@ class SimpleChoiceList extends ChoiceList
         return $this->fixIndex($choice);
     }
 
-
     /**
-     * Converts the choices to valid PHP array keys.
-     *
-     * @param array $choices The choices.
-     *
-     * @return array Valid PHP array keys.
+     * {@inheritdoc}
      */
     protected function fixChoices(array $choices)
     {
         return $this->fixIndices($choices);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function createValue($choice)
+    {
+        // Choices are guaranteed to be unique and scalar, so we can simply
+        // convert them to strings
+        return (string) $choice;
     }
 }

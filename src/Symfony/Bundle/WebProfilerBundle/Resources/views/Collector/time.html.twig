@@ -8,13 +8,14 @@
         'event_listener_loading': '#add',
         'template':               '#dd3',
         'doctrine':               '#d3d',
+        'propel':                 '#f4d',
         'child_sections':         '#eed',
     } %}
 {% endif %}
 
 {% block toolbar %}
     {% set icon %}
-        <img width="16" height="28" alt="Time" style="vertical-align: middle; margin-right: 5px;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAcCAYAAABoMT8aAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAiNJREFUeNpi/P//PwMlgImBQjDwBrCcO3cOq0RRUdF3ZH5fXx8nTVzAePbsWcq8gMwxMjJiSUlJcXv9+nXm169fbf78+SMAVsTC8paXl3ePmJjYjJkzZx4GevsviheAGhmBguL+/v4779y5s/Xjx48+MM0gAGQLv3//PvzmzZv7AwMD19y+fVsEpAfsBWBCYly8eLHcsmXLjnz//l2GGGcDXXM1IyPD2dvb+xXIBTwbN25chU3zgQMHwBgdfP78WXvp0qVzgUwuprq6utg3b96YkRp4z549854wYYI7071791LJjYFLly7lM7148UKHXAOALtdnAYYwCyGFyOHg4OAAZ3/69ImfopTIzMz8j4WVlfXf79+/sRqEbBs2wMfH94tJXV39DbkuUFFReclkb29/jlwDPD09jzGFhoZu0NTU/EKqZktLyzdOTk7bQX4/U1tbu1pcXPwvsZoVFBR+lZeXLwUyz4MMuCMlJbWmv79/o56e3k9Cms3MzL5PmjRphYCAwCYg9wE4MwEZwkBsDsReO3fudN+zZ4/shQsX2ICxA9bEzs7OYGBg8NPHx+eBra3tdqDQVpDLgfgjuEABZk2QS3hBAQvExkBsAHIpMAsLAOP6PzC63gP590FOBmJQCXQPiL8Ai4D/KCUS0CBWIAUqB8SAWAiIQeUgqOIAlY/vgPgVEH8AavyDtUQCSoDc/BqEoQUGLIH9A9mGtUwc8JoJIMAAS9XemfR7crQAAAAASUVORK5CYII="/>
+        <img width="16" height="28" alt="Time" style="vertical-align: middle; margin-right: 5px;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAcCAYAAABoMT8aAAABqUlEQVR42t2Vv0sCYRyHX9OmEhsMx/YKGlwLQ69DTEUSBJEQEy5J3FRc/BsuiFqEIIcQIRo6ysUhoaBBWhoaGoJwiMJLglRKrs8bXgienmkQdPDAwX2f57j3fhFJkkbiPwTK5bIiFoul3kmPud8MqKMewDXpwuGww+12n9hsNhFnlijYf/Z4PDmO45Yxo+10ZFGTyWRMEItU6AdCx7lczkgd6n7J2Wx2xm63P6jJMk6n80YQBBN1aUDv9XqvlAbbm2LE7/cLODRB0un0VveAeoDC8/waCQQC18MGQqHQOcEKvw8bcLlcL6TfYnVtCrGRAlartUUYhmn1jKg/E3USjUYfhw3E4/F7ks/nz4YNFIvFQ/ogbUYikdefyqlU6gnuOg2YK5XKvs/n+xhUDgaDTVEUt+HO04ABOBA5isViDTU5kUi81Wq1AzhWMEkDGmAEq2C3UCjcYXGauDvfEsuyUjKZbJRKpVvM8IABU9SVX+cxYABmwIE9cFqtVi9xtgvsC2AHbIAFoKey0gdlHEyDObAEWLACFsEsMALdIJ80+dK0bTS95v7+v/AJnis0eO906QwAAAAASUVORK5CYII="/>
     {% endset %}
     {% set text %}
         {{ '%.0f'|format(collector.totaltime) }} ms
@@ -62,16 +63,16 @@
     </form>
 
     <h3>
-        Main Request
+        {{ profile.parent ? "Request" : "Main Request" }}
         <small>
-            - {{ collector.events.section.totaltime }} ms
+            - {{ collector.events.__section__.totaltime }} ms
             {% if profile.parent %}
-                - <a href="{{ path('_profiler', { 'token': profile.parent.token }) }}?panel=time&threshold={{ threshold }}&width={{ width }}">parent</a>
+                - <a href="{{ path('_profiler', { 'token': profile.parent.token, 'panel': 'time', 'threshold': threshold, 'width': width }) }}">parent</a>
             {% endif %}
         </small>
     </h3>
 
-    {% set max = collector.events.section.endtime %}
+    {% set max = collector.events.__section__.endtime %}
 
     {{ _self.display_timeline('timeline_' ~ token, collector.events, threshold, colors, width) }}
 
@@ -79,8 +80,8 @@
         {% for child in profile.children %}
             {% set events = child.getcollector('time').events %}
             <h3>
-                Sub-request "<a href="{{ path('_profiler', { 'token': child.token }) }}?panel=time&threshold={{ threshold }}&width={{ width }}">{{ child.getcollector('request').requestattributes.get('_controller') }}</a>"
-                <small> - {{ events.section.totaltime }} ms</small>
+                Sub-request "<a href="{{ path('_profiler', { 'token': child.token, 'panel': 'time', 'threshold': threshold, 'width': width }) }}">{{ child.getcollector('request').requestattributes.get('_controller') }}</a>"
+                <small> - {{ events.__section__.totaltime }} ms</small>
             </h3>
 
             {{ _self.display_timeline('timeline_' ~ child.token, events, threshold, colors, width) }}
@@ -114,7 +115,7 @@
 
             request.events.forEach(function(event) {
                 event.periods.forEach(function(period) {
-                    if ('section.child' === event.name) {
+                    if ('__section__.child' === event.name) {
                         ctx.fillStyle = colors.child_sections;
                         ctx.fillRect(x + period.begin * ratio, 0, (period.end - period.begin) * ratio, height);
                     } else if ('section' === event.category) {
@@ -132,7 +133,7 @@
             });
 
             mainEvents = request.events.filter(function(event) {
-                return 'section.child' !== event.name;
+                return '__section__.child' !== event.name;
             });
 
             mainEvents.forEach(function(event) {
@@ -237,14 +238,14 @@
         }
 
         var requests_data = {
-            "max": {{ collector.events.section.endtime }},
+            "max": {{ collector.events.__section__.endtime }},
             "requests": [
-{{ _self.dump_request_data(token, profile, collector.events, collector.events.section.origin) }}
+{{ _self.dump_request_data(token, profile, collector.events, collector.events.__section__.origin) }}
 
 {% if profile.children|length %}
                 ,
 {% for child in profile.children %}
-{{ _self.dump_request_data(child.token, child, child.getcollector('time').events, collector.events.section.origin) }}{{ loop.last ? '' : ',' }}
+{{ _self.dump_request_data(child.token, child, child.getcollector('time').events, collector.events.__section__.origin) }}{{ loop.last ? '' : ',' }}
 {% endfor %}
 {% endif %}
             ]
@@ -257,7 +258,7 @@
 {% macro dump_request_data(token, profile, events, origin) %}
                 {
                     "id": "{{ token }}",
-                    "left": {{ events.section.origin - origin }},
+                    "left": {{ events.__section__.origin - origin }},
                     "events": [
 {{ _self.dump_events(events) }}
                     ]
@@ -266,7 +267,7 @@
 
 {% macro dump_events(events) %}
 {% for name, event in events %}
-{% if 'section' != name %}
+{% if '__section__' != name %}
                         {
                             "name": "{{ name }}",
                             "category": "{{ event.category }}",
@@ -286,7 +287,7 @@
 
 {% macro display_timeline(id, events, threshold, colors, width) %}
     {% set height = 0 %}
-    {% for name, event in events if 'section' != name and event.totaltime >= threshold %}
+    {% for name, event in events if '__section__' != name and event.totaltime >= threshold %}
         {% set height = height + 38 %}
     {% endfor %}
 

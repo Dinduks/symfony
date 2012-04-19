@@ -17,35 +17,21 @@ use Symfony\Component\Form\Exception\InvalidConfigurationException;
 use Symfony\Component\Form\Extension\Core\View\ChoiceView;
 
 /**
- * Base class for choice list implementations.
+ * A choice list for choices of arbitrary data types.
+ *
+ * Choices and labels are passed in two arrays. The indices of the choices
+ * and the labels should match.
+ *
+ * <code>
+ * $choices = array(true, false);
+ * $labels = array('Agree', 'Disagree');
+ * $choiceList = new ChoiceList($choices, $labels);
+ * </code>
  *
  * @author Bernhard Schussek <bschussek@gmail.<com>
  */
 class ChoiceList implements ChoiceListInterface
 {
-    /**
-     * Strategy creating new indices/values by creating a copy of the choice.
-     *
-     * This strategy can only be used for index creation if choices are
-     * guaranteed to only contain ASCII letters, digits and underscores.
-     *
-     * It can be used for value creation if choices can safely be cast into
-     * a (unique) string.
-     *
-     * @var integer
-     */
-    const COPY_CHOICE = 0;
-
-    /**
-     * Strategy creating new indices/values by generating a new integer.
-     *
-     * This strategy can always be applied, but leads to loss of information
-     * in the HTML source code.
-     *
-     * @var integer
-     */
-    const GENERATE = 1;
-
     /**
      * The choices with their indices as keys.
      *
@@ -77,24 +63,6 @@ class ChoiceList implements ChoiceListInterface
     private $remainingViews = array();
 
     /**
-     * The strategy used for creating choice indices.
-     *
-     * @var integer
-     * @see COPY_CHOICE
-     * @see GENERATE
-     */
-    private $indexStrategy;
-
-    /**
-     * The strategy used for creating choice values.
-     *
-     * @var integer
-     * @see COPY_CHOICE
-     * @see GENERATE
-     */
-    private $valueStrategy;
-
-    /**
      * Creates a new choice list.
      *
      * @param array|\Traversable $choices          The array of choices. Choices may also be given
@@ -106,16 +74,9 @@ class ChoiceList implements ChoiceListInterface
      *                                             should match the structure of $choices.
      * @param array              $preferredChoices A flat array of choices that should be
      *                                             presented to the user with priority.
-     * @param integer            $valueStrategy    The strategy used to create choice values.
-     *                                             One of COPY_CHOICE and GENERATE.
-     * @param integer            $indexStrategy    The strategy used to create choice indices.
-     *                                             One of COPY_CHOICE and GENERATE.
      */
-    public function __construct($choices, array $labels, array $preferredChoices = array(), $valueStrategy = self::GENERATE, $indexStrategy = self::GENERATE)
+    public function __construct($choices, array $labels, array $preferredChoices = array())
     {
-        $this->valueStrategy = $valueStrategy;
-        $this->indexStrategy = $indexStrategy;
-
         $this->initialize($choices, $labels, $preferredChoices);
     }
 
@@ -145,11 +106,7 @@ class ChoiceList implements ChoiceListInterface
     }
 
     /**
-     * Returns the list of choices
-     *
-     * @return array
-     *
-     * @see Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface
+     * {@inheritdoc}
      */
     public function getChoices()
     {
@@ -157,11 +114,7 @@ class ChoiceList implements ChoiceListInterface
     }
 
     /**
-     * Returns the values for the choices
-     *
-     * @return array
-     *
-     * @see Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface
+     * {@inheritdoc}
      */
     public function getValues()
     {
@@ -169,12 +122,7 @@ class ChoiceList implements ChoiceListInterface
     }
 
     /**
-     * Returns the choice views of the preferred choices as nested array with
-     * the choice groups as top-level keys.
-     *
-     * @return array
-     *
-     * @see Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface
+     * {@inheritdoc}
      */
     public function getPreferredViews()
     {
@@ -182,12 +130,7 @@ class ChoiceList implements ChoiceListInterface
     }
 
     /**
-     * Returns the choice views of the choices that are not preferred as nested
-     * array with the choice groups as top-level keys.
-     *
-     * @return array
-     *
-     * @see Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface
+     * {@inheritdoc}
      */
     public function getRemainingViews()
     {
@@ -195,28 +138,15 @@ class ChoiceList implements ChoiceListInterface
     }
 
     /**
-     * Returns the choices corresponding to the given values.
-     *
-     * @param array $values
-     *
-     * @return array
-     *
-     * @see Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface
+     * {@inheritdoc}
      */
     public function getChoicesForValues(array $values)
     {
         $values = $this->fixValues($values);
-
-        // If the values are identical to the choices, we can just return them
-        // to improve performance a little bit
-        if (self::COPY_CHOICE === $this->valueStrategy) {
-            return $this->fixChoices(array_intersect($values, $this->values));
-        }
-
         $choices = array();
 
-        foreach ($this->values as $i => $value) {
-            foreach ($values as $j => $givenValue) {
+        foreach ($values as $j => $givenValue) {
+            foreach ($this->values as $i => $value) {
                 if ($value === $givenValue) {
                     $choices[] = $this->choices[$i];
                     unset($values[$j]);
@@ -232,24 +162,11 @@ class ChoiceList implements ChoiceListInterface
     }
 
     /**
-     * Returns the values corresponding to the given choices.
-     *
-     * @param array $choices
-     *
-     * @return array
-     *
-     * @see Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface
+     * {@inheritdoc}
      */
     public function getValuesForChoices(array $choices)
     {
         $choices = $this->fixChoices($choices);
-
-        // If the values are identical to the choices, we can just return them
-        // to improve performance a little bit
-        if (self::COPY_CHOICE === $this->valueStrategy) {
-            return $this->fixValues(array_intersect($choices, $this->choices));
-        }
-
         $values = array();
 
         foreach ($this->choices as $i => $choice) {
@@ -269,13 +186,7 @@ class ChoiceList implements ChoiceListInterface
     }
 
     /**
-     * Returns the indices corresponding to the given choices.
-     *
-     * @param array $choices
-     *
-     * @return array
-     *
-     * @see Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface
+     * {@inheritdoc}
      */
     public function getIndicesForChoices(array $choices)
     {
@@ -299,13 +210,7 @@ class ChoiceList implements ChoiceListInterface
     }
 
     /**
-     * Returns the indices corresponding to the given values.
-     *
-     * @param array $values
-     *
-     * @return array
-     *
-     * @see Symfony\Component\Form\Extension\Core\ChoiceList\ChoiceListInterface
+     * {@inheritdoc}
      */
     public function getIndicesForValues(array $values)
     {
@@ -431,17 +336,15 @@ class ChoiceList implements ChoiceListInterface
         $index = $this->createIndex($choice);
 
         if ('' === $index || null === $index || !Form::isValidName((string)$index)) {
-            throw new InvalidConfigurationException('The choice list index "' . $index . '" is invalid. Please set the choice field option "index_generation" to ChoiceList::GENERATE.');
+            throw new InvalidConfigurationException('The index "' . $index . '" created by the choice list is invalid. It should be a valid, non-empty Form name.');
         }
 
         $value = $this->createValue($choice);
 
-        if (!is_scalar($value)) {
-            throw new InvalidConfigurationException('The choice list value of type "' . gettype($value) . '" should be a scalar. Please set the choice field option "value_generation" to ChoiceList::GENERATE.');
+        if (!is_string($value)) {
+            throw new InvalidConfigurationException('The value created by the choice list is of type "' . gettype($value) . '", but should be a string.');
         }
 
-        // Always store values as strings to facilitate comparisons
-        $value = $this->fixValue($value);
         $view = new ChoiceView($value, $label);
 
         $this->choices[$index] = $this->fixChoice($choice);
@@ -481,29 +384,23 @@ class ChoiceList implements ChoiceListInterface
      */
     protected function createIndex($choice)
     {
-        if (self::COPY_CHOICE === $this->indexStrategy) {
-            return $choice;
-        }
-
         return count($this->choices);
     }
 
     /**
      * Creates a new unique value for this choice.
      *
-     * Extension point to change the value strategy.
+     * By default, an integer is generated since it cannot be guaranteed that
+     * all values in the list are convertible to (unique) strings. Subclasses
+     * can override this behaviour if they can guarantee this property.
      *
      * @param mixed $choice The choice to create a value for
      *
-     * @return integer|string A unique value without character limitations.
+     * @return string A unique string.
      */
     protected function createValue($choice)
     {
-        if (self::COPY_CHOICE === $this->valueStrategy) {
-            return $choice;
-        }
-
-        return count($this->values);
+        return (string) count($this->values);
     }
 
     /**

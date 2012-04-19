@@ -44,7 +44,7 @@ class DateType extends AbstractType
         // If $format is not in the allowed options, it's considered as the pattern of the formatter if it is a string
         if (!in_array($format, $allowedFormatOptionValues, true)) {
             if (is_string($format)) {
-                $defaultOptions = $this->getDefaultOptions($options);
+                $defaultOptions = $this->getDefaultOptions();
 
                 $format = $defaultOptions['format'];
                 $pattern = $options['format'];
@@ -57,7 +57,7 @@ class DateType extends AbstractType
             \Locale::getDefault(),
             $format,
             \IntlDateFormatter::NONE,
-            \DateTimeZone::UTC,
+            'UTC',
             \IntlDateFormatter::GREGORIAN,
             $pattern
         );
@@ -89,20 +89,14 @@ class DateType extends AbstractType
                 // Only pass a subset of the options to children
                 $yearOptions = array(
                     'choices' => $years,
-                    'value_strategy' => ChoiceList::COPY_CHOICE,
-                    'index_strategy' => ChoiceList::COPY_CHOICE,
                     'empty_value' => $options['empty_value']['year'],
                 );
                 $monthOptions = array(
                     'choices' => $this->formatMonths($formatter, $months),
-                    'value_strategy' => ChoiceList::COPY_CHOICE,
-                    'index_strategy' => ChoiceList::COPY_CHOICE,
                     'empty_value' => $options['empty_value']['month'],
                 );
                 $dayOptions = array(
                     'choices' => $days,
-                    'value_strategy' => ChoiceList::COPY_CHOICE,
-                    'index_strategy' => ChoiceList::COPY_CHOICE,
                     'empty_value' => $options['empty_value']['day'],
                 );
 
@@ -167,7 +161,7 @@ class DateType extends AbstractType
     /**
      * {@inheritdoc}
      */
-    public function getDefaultOptions(array $options)
+    public function getDefaultOptions()
     {
         return array(
             'years'          => range(date('Y') - 5, date('Y') + 5),
@@ -183,13 +177,18 @@ class DateType extends AbstractType
             // them like immutable value objects
             'by_reference'   => false,
             'error_bubbling' => false,
+            // If initialized with a \DateTime object, FormType initializes
+            // this option to "\DateTime". Since the internal, normalized
+            // representation is not \DateTime, but an array, we need to unset
+            // this option.
+            'data_class'     => null,
         );
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getAllowedOptionValues(array $options)
+    public function getAllowedOptionValues()
     {
         return array(
             'input'     => array(
@@ -211,7 +210,7 @@ class DateType extends AbstractType
      */
     public function getParent(array $options)
     {
-        return 'single_text' === $options['widget'] ? 'field' : 'form';
+        return 'field';
     }
 
     /**

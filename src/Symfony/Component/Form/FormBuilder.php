@@ -17,6 +17,9 @@ use Symfony\Component\Form\Exception\CircularReferenceException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+/**
+ * @author Bernhard Schussek <bschussek@gmail.com>
+ */
 class FormBuilder
 {
     /**
@@ -46,7 +49,7 @@ class FormBuilder
     /**
      * @var Boolean
      */
-    private $readOnly;
+    private $disabled;
 
     /**
      * @var Boolean
@@ -103,7 +106,7 @@ class FormBuilder
      * Whether added errors should bubble up to the parent
      * @var Boolean
      */
-    private $errorBubbling = false;
+    private $errorBubbling;
 
     /**
      * Data used for the client data when no value is bound
@@ -112,6 +115,12 @@ class FormBuilder
     private $emptyData = '';
 
     private $currentLoadingType;
+
+    /**
+     * The parent of this builder
+     * @var FormBuilder
+     */
+    private $parent;
 
     /**
      * Constructor.
@@ -178,27 +187,27 @@ class FormBuilder
     }
 
     /**
-     * Set whether the form is read only
+     * Set whether the form is disabled.
      *
-     * @param Boolean $readOnly Whether the form is read only
+     * @param Boolean $disabled Whether the form is disabled
      *
      * @return FormBuilder The current builder
      */
-    public function setReadOnly($readOnly)
+    public function setDisabled($disabled)
     {
-        $this->readOnly = (Boolean) $readOnly;
+        $this->disabled = (Boolean) $disabled;
 
         return $this;
     }
 
     /**
-     * Returns whether the form is read only.
+     * Returns whether the form is disabled.
      *
-     * @return Boolean Whether the form is read only
+     * @return Boolean Whether the form is disabled
      */
-    public function getReadOnly()
+    public function getDisabled()
     {
-        return $this->readOnly;
+        return $this->disabled;
     }
 
     /**
@@ -234,7 +243,7 @@ class FormBuilder
      */
     public function setErrorBubbling($errorBubbling)
     {
-        $this->errorBubbling = (Boolean) $errorBubbling;
+        $this->errorBubbling = null === $errorBubbling ? null : (Boolean) $errorBubbling;
 
         return $this;
     }
@@ -255,6 +264,8 @@ class FormBuilder
      * @param FormValidatorInterface $validator The validator
      *
      * @return FormBuilder The current builder
+     *
+     * @deprecated Deprecated since version 2.1, to be removed in 2.3.
      */
     public function addValidator(FormValidatorInterface $validator)
     {
@@ -267,6 +278,8 @@ class FormBuilder
      * Returns the validators used by the form.
      *
      * @return array An array of FormValidatorInterface
+     *
+     * @deprecated Deprecated since version 2.1, to be removed in 2.3.
      */
     public function getValidators()
     {
@@ -316,7 +329,7 @@ class FormBuilder
     }
 
     /**
-     * Prepends a transformer to the client transformer chain
+     * Prepends a transformer to the normalization transformer chain
      *
      * @param DataTransformerInterface $normTransformer
      *
@@ -453,7 +466,7 @@ class FormBuilder
      *
      * @return FormBuilder The current builder
      */
-    public function setDataMapper(DataMapperInterface $dataMapper)
+    public function setDataMapper(DataMapperInterface $dataMapper = null)
     {
         $this->dataMapper = $dataMapper;
 
@@ -532,6 +545,7 @@ class FormBuilder
     public function add($child, $type = null, array $options = array())
     {
         if ($child instanceof self) {
+            $child->setParent($this);
             $this->children[$child->getName()] = $child;
 
             return $this;
@@ -573,10 +587,10 @@ class FormBuilder
         }
 
         if (null !== $type) {
-            return $this->getFormFactory()->createNamedBuilder($type, $name, null, $options);
+            return $this->getFormFactory()->createNamedBuilder($type, $name, null, $options, $this);
         }
 
-        return $this->getFormFactory()->createBuilderForProperty($this->dataClass, $name, null, $options);
+        return $this->getFormFactory()->createBuilderForProperty($this->dataClass, $name, null, $options, $this);
     }
 
     /**
@@ -615,6 +629,9 @@ class FormBuilder
     public function remove($name)
     {
         if (isset($this->children[$name])) {
+            if ($this->children[$name] instanceof self) {
+                $this->children[$name]->setParent(null);
+            }
             unset($this->children[$name]);
         }
 
@@ -634,6 +651,16 @@ class FormBuilder
     }
 
     /**
+     * Returns the children.
+     *
+     * @return array
+     */
+    public function all()
+    {
+        return $this->children;
+    }
+
+    /**
      * Creates the form.
      *
      * @return Form The form
@@ -649,7 +676,7 @@ class FormBuilder
             $this->getDataMapper(),
             $this->getValidators(),
             $this->getRequired(),
-            $this->getReadOnly(),
+            $this->getDisabled(),
             $this->getErrorBubbling(),
             $this->getEmptyData(),
             $this->getAttributes()
@@ -669,6 +696,30 @@ class FormBuilder
     public function setCurrentLoadingType($type)
     {
         $this->currentLoadingType = $type;
+    }
+
+    /**
+     * Returns the parent builder.
+     *
+     * @return FormBuilder The parent builder
+     */
+    public function getParent()
+    {
+        return $this->parent;
+    }
+
+    /**
+     * Sets the parent builder.
+     *
+     * @param FormBuilder $parent The parent builder
+     *
+     * @return FormBuilder The current builder
+     */
+    public function setParent(FormBuilder $parent = null)
+    {
+        $this->parent = $parent;
+
+        return $this;
     }
 
     /**
