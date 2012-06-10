@@ -881,13 +881,14 @@ class Application
         return new InputDefinition(array(
             new InputArgument('command', InputArgument::REQUIRED, 'The command to execute'),
 
-            new InputOption('--help',           '-h', InputOption::VALUE_NONE, 'Display this help message.'),
-            new InputOption('--quiet',          '-q', InputOption::VALUE_NONE, 'Do not output any message.'),
-            new InputOption('--verbose',        '-v', InputOption::VALUE_NONE, 'Increase verbosity of messages.'),
-            new InputOption('--version',        '-V', InputOption::VALUE_NONE, 'Display this application version.'),
-            new InputOption('--ansi',           '',   InputOption::VALUE_NONE, 'Force ANSI output.'),
-            new InputOption('--no-ansi',        '',   InputOption::VALUE_NONE, 'Disable ANSI output.'),
-            new InputOption('--no-interaction', '-n', InputOption::VALUE_NONE, 'Do not ask any interactive question.'),
+            new InputOption('--help',           '-h', InputOption::VALUE_NONE,     'Display this help message.'),
+            new InputOption('--directory',      '-d', InputOption::VALUE_REQUIRED, 'Specify the execution directory'),
+            new InputOption('--quiet',          '-q', InputOption::VALUE_NONE,     'Do not output any message.'),
+            new InputOption('--verbose',        '-v', InputOption::VALUE_NONE,     'Increase verbosity of messages.'),
+            new InputOption('--version',        '-V', InputOption::VALUE_NONE,     'Display this application version.'),
+            new InputOption('--ansi',           '',   InputOption::VALUE_NONE,     'Force ANSI output.'),
+            new InputOption('--no-ansi',        '',   InputOption::VALUE_NONE,     'Disable ANSI output.'),
+            new InputOption('--no-interaction', '-n', InputOption::VALUE_NONE,     'Do not ask any interactive question.'),
         ));
     }
 
